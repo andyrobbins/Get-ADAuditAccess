@@ -145,11 +145,13 @@ try{
         $computer 
  
         # Check the security logs for the event. 
-        Get-WinEvent -ComputerName $Computer -FilterHashtable $FilterSearch -ErrorAction Stop |  
+        Get-WinEvent -ComputerName $Computer -FilterHashtable $FilterSearch -ErrorAction Stop |
         ForEach-Object { 
+		
+		#$ErrorActionPreference = 'SilentlyContinue'
          
         #Full String Event Log Message 
-        $FullMessage = $_.Message 
+        $FullMessage = $_.Message
          
         # Portions of the Full Message 
         $Message = $FullMessage -split "Subject :" | select -Index 1 
@@ -201,78 +203,58 @@ try{
         
 		# Add each accessed property to $AccessedProps
 		[System.Collections.ArrayList]$AccessedProps=@()
-		$AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-		$AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-        $AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-		$AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-		$AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-		$AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-		$AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-		$AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-		$AccessedProps.Add($GUIDMap[$OperationArray[10].replace('{','').replace('}','')]) | Out-Null
-
-		#Write-Host $GUIDMap[$OperationArray[10].replace('{','').replace('}','')] 
+		10..1024 | %{
+		    try {
+			    $AccessedProps.Add($GUIDMap[$OperationArray[$_].replace('{','').replace('}','')]) | Out-Null
+			}
+			catch {
+			    try {
+			        $AccessedProps.Add($OperationArray[$_]) | Out-Null
+				}
+				catch {
+				}
+			}
+		}
 		
 		# Remove empty entries
-		$AccessedProps = $AccessedProps | ?{$_ -ne ""}
-		
-        #$GUIDS = Get-DomainGUIDMap
-		
-		#$guidmap[$b[0].replace('{','').replace('}','')]
+		# This doesn't actually work
+		#If ($AccessedProps.Count > 1) {
+		#$AccessedProps = $AccessedProps | ?{$_ -ne $null}
+		#$AccessedProps = $AccessedProps | ?{$_ -ne ""}
+		#}
 		
 		ForEach ($item in $AccessedProps){
-            # Put the pieces of the Message back together.
-            $hash = @{ 
-            TimeCreated=$_.TimeCreated 
-            SecurityID   =$SubjectArray[2] 
-            AccountName  =$SubjectArray[4] 
-            AccountDomain=$SubjectArray[6] 
-            LogonID      =$SubjectArray[8] 
-            ObjectServer =$ObjectArray[2] 
-            ObjectType   =$Principal 
-            ObjectName   =$ObjectName 
-            HandleID     =$ObjectArray[8] 
-            OperationType=$OperationArray[2] 
-            Accesses     =$OperationArray[4]
-		    AccessedProp =$item
-            } 
-         
+		    If ($item) {
+                # Put the pieces of the Message back together.
+                $hash = @{ 
+                TimeCreated=$_.TimeCreated 
+                SecurityID   =$SubjectArray[2] 
+                AccountName  =$SubjectArray[4] 
+                AccountDomain=$SubjectArray[6] 
+                LogonID      =$SubjectArray[8] 
+                ObjectServer =$ObjectArray[2] 
+                ObjectType   =$Principal 
+                ObjectName   =$ObjectName 
+                HandleID     =$ObjectArray[8] 
+                OperationType=$OperationArray[2] 
+                Accesses     =$OperationArray[4]
+		        AccessedProp =$item
+                } 
+            }
             New-Object psobject -Property $hash | select TimeCreated,SecurityID,AccountName,Accountdomain,` 
             LogonID,ObjectServer,ObjectType,ObjectName,HandleID,OperationType,Accesses,AccessedProp		
 		}
-		
-        # Put the pieces of the Message back together.
-        #$hash = @{ 
-        #TimeCreated=$_.TimeCreated 
-        #SecurityID   =$SubjectArray[2] 
-        #AccountName  =$SubjectArray[4] 
-        #AccountDomain=$SubjectArray[6] 
-        #LogonID      =$SubjectArray[8] 
-        #ObjectServer =$ObjectArray[2] 
-        #ObjectType   =$Principal 
-        #ObjectName   =$ObjectName 
-        #HandleID     =$ObjectArray[8] 
-        #OperationType=$OperationArray[2] 
-        #Accesses     =$OperationArray[4]
-		#AccessedProps=$AccessedProps
-        #} 
-         
-        #New-Object psobject -Property $hash | select TimeCreated,SecurityID,AccountName,Accountdomain,` 
-        #LogonID,ObjectServer,ObjectType,ObjectName,HandleID,OperationType,Accesses,AccessedProps
-		
-		#$A = New-Object psobject -Property $hash | select TimeCreated,SecurityID,AccountName,Accountdomain,` 
-        #LogonID,ObjectServer,ObjectType,ObjectName,HandleID,OperationType,Accesses,AccessedProps
-		
-		#$Props = $A.AccessedProps.replace('}{',',').split(',').replace('{','').replace('}','')
-		
-		#$Props
  
         }#Foreach-Object(EventLog) 
          
     } #| Where-Object {$ObjectType -contains $_.ObjectType}    
  
 }#Try 
-catch{ "`nYou need permissions to query the event logs." } 	
+catch{ 
+#$FullMessage
+#$AccessedProps
+Write-Host "Something bad happened in Get-WinEvent $($_)"
+} 	
  
 }#Process 
      
