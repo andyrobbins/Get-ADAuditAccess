@@ -1,5 +1,8 @@
 <# 
 
+Author: Ben Wilkinson - https://twitter.com/brwilkinson
+Slightly modified by Andy Robbins - https://twitter.com/_wald0
+
 Slightly modified version of Ben Wilkinson's Get-ADAuditAccess:
 https://gallery.technet.microsoft.com/scriptcenter/Auditing-Directory-Service-53574749
 
